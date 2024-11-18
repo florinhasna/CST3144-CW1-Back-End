@@ -1,18 +1,50 @@
 import express from "express";
 import morgan from "morgan";
-
+import cors from "cors";
+import PropertiesReader from "properties-reader";
+import path from "path";
+import { fileURLToPath } from 'url';
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 var app = express();
 var port = 3000;
 
-app.use(morgan("short"));
+// making filename and dirname functional in ES module environment
+// get the current file path 
+const __filename = fileURLToPath(import.meta.url);
+// get the directory name
+const __dirname = path.dirname(__filename);
+
+let propertiesPath = path.resolve(__dirname, "conf/db.properties");
+let properties = PropertiesReader(propertiesPath);
+let dbPprefix = properties.get("db.prefix");
+//URL-Encoding of User and PWD
+//for potential special characters
+let dbUsername = encodeURIComponent(properties.get("db.user"));
+let dbPwd = encodeURIComponent(properties.get("db.pwd"));
+let dbName = properties.get("db.dbName");
+let dbUrl = properties.get("db.dbUrl");
+let dbParams = properties.get("db.params");
+const uri = dbPprefix + dbUsername + ":" + dbPwd + dbName + dbUrl + dbParams;
+
+const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+let db = client.db(dbName);
+
+app.use(morgan("short")); // logger
 app.use(express.static('static'));
+app.use(express.json());
+app.use(cors());
 
 app.get("/lessons", function (req, res) {
-    res.send({ lessons: lessonsData });
+    res.json(lessonsData);
 });
 
 app.get("/search", function (req, res) {
+});
+
+// Page not found middleware
+app.use(function (request, response) {
+    response.status(404).send("Page not found!");
 });
 
 // Start the server
