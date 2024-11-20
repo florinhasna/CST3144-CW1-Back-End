@@ -26,6 +26,7 @@ let db = client.db(dbName);
 
 export const collections = {
     lessons: db.collection('Lessons'),
+    orders: db.collection("Orders"),
 }
 
 // function to get a collection's entries
@@ -42,6 +43,20 @@ export async function find(aCollection, query) {
     return result;
 }
 
+// function to insert a new entry in a collection
+export async function insert(aCollection, newEntry) {
+    // connect to db
+    await client.connect();
+
+    // enter a new entry in the desired collection
+    let insertion = await aCollection.insertOne(newEntry);
+
+    // close connection
+    await client.close();
+
+    return insertion.insertedId;
+}
+
 export async function update(aCollection, query, updatedDoc) {
     await client.connect();
 
@@ -56,8 +71,8 @@ export async function update(aCollection, query, updatedDoc) {
         console.log('MongoDB connected successfully!');
 
         // Use the client
-        const db = client.db('yourDatabaseName');
-        console.log('Database:', db.databaseName);
+        const db = client.db(dbName);
+        console.log('Database:', dbName);
     } catch (error) {
         console.error('Error connecting to MongoDB:', error.message);
     } finally {
