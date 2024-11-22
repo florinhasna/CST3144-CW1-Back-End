@@ -15,33 +15,71 @@ app.get("/", function (req, res) {
     res.send("Server created by Florin Hasna to host the back-end of CST3144 Coursework!")
 });
 
-// get to get lessons
-app.get("/lessons", async function (req, res) {
+// sort parameteres
+app.param("collection", function (req, res, next, collectionName) {
+    // make firsrt letter uppercase, considering collections are named Lessons and not lessons
+    collectionName = collectionName.charAt(0).toUpperCase() + collectionName.slice(1).toLowerCase();
+    req.collection = mongoDB.db.collection(collectionName);
+    return next();
+})
 
+// sort parameteres
+app.param("sortBy", function (req, res, next, sortBy) {
+    req.sortBy = sortBy.toLowerCase();
+    return next();
+})
+
+app.param("sortDirection", function (req, res, next, sortDirection) {
+    if (sortDirection.toLowerCase() === "ascending") {
+        req.sortDirection = 1;
+        return next();
+    }
+    if (sortDirection.toLowerCase() === "descending") {
+        req.sortDirection = -1;
+        return next();
+    }
+
+    req.sortDirection = sortDirection;
+    return next();
+})
+
+// get to retrieve a collection
+app.get("/collections/:collection/:sortBy/:sortDirection", async function (req, res) {
     // log the action
-    console.log({ "message": "Lessons requested, returning lessons." });
-    res.json(await mongoDB.find(mongoDB.collections.lessons, {}));
+    console.log({
+        "message": "Lessons requested, returning lessons.",
+        "sortBy": req.sortBy,
+        "sortDirection": req.sortDirection
+    });
+    res.json(await mongoDB.find(req.collection, {}, { sort: [[req.sortBy, req.sortDirection]] }));
+});
+
+app.param("lookingFor", function (req, res, next, lookingFor) {
+    req.lookingFor = lookingFor;
+    return next();
 });
 
 // post to search the lessons
-app.post("/search", async function (req, res) {
-
+app.get("/search/:lookingFor/:sortBy/:sortDirection", async function (req, res) {
     // log the action
     console.log({
         "message": "Data received for searching. Searching...",
-        "lookingFor": req.body.searchTerm
+        "lookingFor": req.lookingFor,
+        "sortBy": req.sortBy,
+        "sortDirection": req.sortDirection
     });
 
     // set-up the query for searching
     const query = {
         $or: [
-            { "title": { $regex: req.body.searchTerm, $options: "i" } },
-            { "location": { $regex: req.body.searchTerm, $options: "i" } }
+            { "title": { $regex: req.lookingFor, $options: "i" } },
+            { "location": { $regex: req.lookingFor, $options: "i" } }
         ],
     }
 
+    let results = await mongoDB.find(mongoDB.collections.lessons, query, { sort: [[req.sortBy, req.sortDirection]] });
     // send back the results
-    res.json(await mongoDB.find(mongoDB.collections.lessons, query));
+    res.json(results);
 });
 
 // post to place the order

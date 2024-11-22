@@ -22,20 +22,20 @@ let dbParams = properties.get("db.params");
 const uri = dbPprefix + dbUsername + ":" + dbPwd + dbUrl + dbParams;
 
 const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
-let db = client.db(dbName);
+export let db = client.db(dbName);
 
 export const collections = {
     lessons: db.collection('Lessons'),
-    orders: db.collection("Orders"),
+    orders: db.collection('Orders'),
 }
 
 // function to get a collection's entries
-export async function find(aCollection, query) {
+export async function find(aCollection, query, sortCriteria) {
     // connect to db
     await client.connect();
 
     // get the data in an array
-    const result = await aCollection.find(query).toArray();
+    const result = await aCollection.find(query, sortCriteria).toArray();
 
     // close connection
     await client.close();
