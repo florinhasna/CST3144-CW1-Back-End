@@ -1,7 +1,7 @@
 import PropertiesReader from "properties-reader";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { MongoClient, ServerApiVersion } from "mongodb";
 
 // making filename and dirname functional in ES module environment
 // get the current file path 
@@ -57,12 +57,15 @@ export async function insert(aCollection, newEntry) {
     return insertion.insertedId;
 }
 
+// function to update an entry of a collection
 export async function update(aCollection, query, updatedDoc) {
     await client.connect();
 
     const result = await aCollection.updateOne(query, updatedDoc);
 
     await client.close();
+
+    return result;
 }
 
 (async () => {

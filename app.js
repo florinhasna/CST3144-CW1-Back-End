@@ -2,6 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import * as mongoDB from "./mongodb-setup.js";
+import { ObjectId } from "mongodb";
 
 var app = express();
 
@@ -91,7 +92,24 @@ app.post("/place-order", async function (req, res) {
     });
 
     // insert the entry in the collection
-    await mongoDB.insert(mongoDB.collections.orders, req.body);
+    res.send(await mongoDB.insert(mongoDB.collections.orders, req.body));
+});
+
+// parameter for id, used for lessons ids
+app.param("id", function (req, res, next, id) {
+    req.id = id;
+    return next();
+});
+
+// put request to update an entry in the database, used for lessons
+app.put("/update-availability/:collection/:id", async function (req, res) {
+    // log the action
+    console.log({
+        "message": `Updating data for ${req.id}, on collection ${req.collection}`,
+    });
+
+    // update the availability of a lesson, by the mongo ObjID
+    res.send(await mongoDB.update(req.collection, { _id: new ObjectId(req.id) }, { $set: req.body }));
 })
 
 // Page not found middleware
