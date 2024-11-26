@@ -2,7 +2,6 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import * as mongoDB from "./mongodb-setup.js";
-import { ObjectId } from "mongodb";
 
 var app = express();
 
@@ -24,7 +23,7 @@ app.param("collection", function (req, res, next, collectionName) {
     return next();
 })
 
-// sort parameteres
+// sort parameteres for field and direction
 app.param("sortBy", function (req, res, next, sortBy) {
     req.sortBy = sortBy.toLowerCase();
     return next();
@@ -55,6 +54,7 @@ app.get("/collections/:collection/:sortBy/:sortDirection", async function (req, 
     res.json(await mongoDB.find(req.collection, {}, { sort: [[req.sortBy, req.sortDirection]] }));
 });
 
+// parameter for the search word
 app.param("lookingFor", function (req, res, next, lookingFor) {
     req.lookingFor = lookingFor;
     return next();
@@ -100,23 +100,22 @@ app.post("/place-order", async function (req, res) {
     });
 
     // insert the entry in the collection
-    res.send(await mongoDB.insert(mongoDB.collections.orders, req.body));
+    let id = (await mongoDB.insert(mongoDB.collections.orders, req.body));
+    res.json({
+        "acknowledged": true,
+        "insertId": id
+    })
 });
 
-app.param("field", function (req, res, next, field) {
-    req.field = field;
-    return next();
-})
-
 // put request to update an entry in the database, used for lessons
-app.put("/collections/:collection/update/:field", async function (req, res) {
+app.put("/collections/:collection/update", async function (req, res) {
     // log the action
-    console.log({ "message": `Updating \"${req.field}\" fields`, });
+    console.log({ "message": `Updating fields...`, });
 
     const results = await mongoDB.update(req.collection, req.body);
 
     res.send({
-        "message": `${req.field} updated successfully...`,
+        "message": `success`,
         "fields": `${results.length} updated...`
     });
 });
