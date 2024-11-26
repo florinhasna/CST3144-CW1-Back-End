@@ -61,7 +61,7 @@ app.param("lookingFor", function (req, res, next, lookingFor) {
 });
 
 // post to search the lessons
-app.get("/search/:lookingFor/:sortBy/:sortDirection", async function (req, res) {
+app.get("/collections/:collection/search/:lookingFor/:sortBy/:sortDirection", async function (req, res) {
     // log the action
     console.log({
         "message": "Data received for searching. Searching...",
@@ -70,15 +70,23 @@ app.get("/search/:lookingFor/:sortBy/:sortDirection", async function (req, res) 
         "sortDirection": req.sortDirection
     });
 
+    // regex to search string-based fields
+    const regex = new RegExp(req.lookingFor, 'i');
+
     // set-up the query for searching
-    const query = {
-        $or: [
-            { "title": { $regex: req.lookingFor, $options: "i" } },
-            { "location": { $regex: req.lookingFor, $options: "i" } }
-        ],
+    let conditions = [
+        { "title": regex },
+        { "location": regex },
+    ]
+
+    // check if the input is a numeric value
+    if (!isNaN(req.lookingFor) && req.lookingFor.trim() !== '') {
+        // add to conditions array if it is to search those fields too, convert input to integer
+        conditions.push({ "price": parseInt(req.lookingFor) });
+        conditions.push({ "availability": parseInt(req.lookingFor) });
     }
 
-    let results = await mongoDB.find(mongoDB.collections.lessons, query, { sort: [[req.sortBy, req.sortDirection]] });
+    let results = await mongoDB.find(req.collection, { $or: conditions }, { sort: [[req.sortBy, req.sortDirection]] });
     // send back the results
     res.json(results);
 });
