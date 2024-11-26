@@ -95,22 +95,23 @@ app.post("/place-order", async function (req, res) {
     res.send(await mongoDB.insert(mongoDB.collections.orders, req.body));
 });
 
-// parameter for id, used for lessons ids
-app.param("id", function (req, res, next, id) {
-    req.id = id;
+app.param("field", function (req, res, next, field) {
+    req.field = field;
     return next();
-});
+})
 
 // put request to update an entry in the database, used for lessons
-app.put("/update-availability/:collection/:id", async function (req, res) {
+app.put("/collections/:collection/update/:field", async function (req, res) {
     // log the action
-    console.log({
-        "message": `Updating data for ${req.id}, on collection ${req.collection}`,
-    });
+    console.log({ "message": `Updating \"${req.field}\" fields`, });
 
-    // update the availability of a lesson, by the mongo ObjID
-    res.send(await mongoDB.update(req.collection, { _id: new ObjectId(req.id) }, { $set: req.body }));
-})
+    const results = await mongoDB.update(req.collection, req.body);
+
+    res.send({
+        "message": `${req.field} updated successfully...`,
+        "fields": `${results.length} updated...`
+    });
+});
 
 // Page not found middleware
 app.use(function (request, response) {

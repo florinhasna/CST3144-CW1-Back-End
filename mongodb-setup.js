@@ -1,7 +1,7 @@
 import PropertiesReader from "properties-reader";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 // making filename and dirname functional in ES module environment
 // get the current file path 
@@ -21,9 +21,11 @@ let dbUrl = properties.get("db.dbUrl");
 let dbParams = properties.get("db.params");
 const uri = dbPprefix + dbUsername + ":" + dbPwd + dbUrl + dbParams;
 
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+
+export const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 export let db = client.db(dbName);
 
+// collections of the db exported
 export const collections = {
     lessons: db.collection('Lessons'),
     orders: db.collection('Orders'),
@@ -58,16 +60,30 @@ export async function insert(aCollection, newEntry) {
 }
 
 // function to update an entry of a collection
-export async function update(aCollection, query, updatedDoc) {
-    await client.connect();
+export async function update(aCollection, data) {
+    try {
+        // connect to the database
+        await client.connect();
 
-    const result = await aCollection.updateOne(query, updatedDoc);
+        // perform updates concurrently
+        const updates = data.map(async ({ _id, ...updateFields }) => {
+            return aCollection.updateOne(
+                { _id: new ObjectId(_id) },
+                { $set: updateFields }
+            );
+        });
 
-    await client.close();
-
-    return result;
+        // wait for all updates to complete and return after
+        return await Promise.all(updates);
+    } catch (error) { // log the error
+        console.error("Error updating documents:", error);
+    } finally {
+        // Close the connection
+        await client.close();
+    }
 }
 
+// test connection and print confirmation
 (async () => {
     try {
         await client.connect();
